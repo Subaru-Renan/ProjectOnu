@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ONU — Árvore Interativa</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* === style.css === */
+:root{--bg:#04060f;--surface:#0a0e1a;--surface2:#0f1525;--surface3:#151d30;--border:rgba(255,255,255,0.07);--border-bright:rgba(100,160,255,0.25);--un-blue:#4a90d9;--un-light:#7bb8f0;--un-pale:#b8d8f8;--accent:#00d4aa;--accent2:#f0b429;--danger:#f06060;--text:#e8edf8;--text-muted:#6b7a9a;--text-dim:#3d4d6a;--connector:rgba(74,144,217,0.4)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(74,144,217,.12) 0%,transparent 60%),radial-gradient(ellipse 40% 30% at 80% 80%,rgba(0,212,170,.06) 0%,transparent 50%)}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--un-blue)}
+#loadingScreen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .5s}
+#loadingScreen.hidden{opacity:0;pointer-events:none}
+.loading-globe{width:84px;height:84px;border-radius:50%;font-size:42px;background:linear-gradient(135deg,var(--un-blue),var(--accent));display:flex;align-items:center;justify-content:center;animation:pulse 1.5s ease-in-out infinite;box-shadow:0 0 40px rgba(74,144,217,.55)}
+.loading-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:6px;color:var(--un-pale)}
+.loading-bar{width:220px;height:2px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.loading-bar-fill{height:100%;background:linear-gradient(90deg,var(--un-blue),var(--accent));animation:loadProg 3s ease forwards}
+.loading-msg{font-size:11px;color:var(--text-muted);letter-spacing:2px}
+header{position:sticky;top:0;z-index:100;background:rgba(4,6,15,.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 2rem}
+.header-inner{max-width:1600px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px;gap:2rem}
+.logo-area{display:flex;align-items:center;gap:14px}
+.un-emblem{width:42px;height:42px;border-radius:50%;font-size:22px;flex-shrink:0;background:linear-gradient(135deg,var(--un-blue),var(--accent));display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px rgba(74,144,217,.45)}
+.logo-text{display:flex;flex-direction:column;line-height:1}
+.logo-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:5px;color:var(--un-pale);text-shadow:0 0 30px rgba(74,144,217,.6)}
+.logo-sub{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);font-weight:300}
+.header-controls{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;max-width:280px}
+.search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
+#searchInput{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px 9px 36px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s}
+#searchInput:focus{border-color:var(--un-blue);box-shadow:0 0 0 3px rgba(74,144,217,.12)}
+#searchInput::placeholder{color:var(--text-dim)}
+.btn{display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn:hover{border-color:var(--un-blue);color:var(--un-light);background:rgba(74,144,217,.08)}
+.btn.danger:hover{border-color:var(--danger);color:var(--danger);background:rgba(240,96,96,.08)}
+.btn.success:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,212,170,.08)}
+#statsBar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 2rem;display:none;gap:2.5rem;justify-content:center;flex-wrap:wrap}
+.stat-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}
+.stat-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.stat-value{font-family:'DM Mono',monospace;color:var(--un-light);font-weight:500}
+#traversalPanel{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 2rem;display:none;flex-wrap:wrap;gap:12px;align-items:center}
+.trav-label{font-size:12px;color:var(--text-muted);font-weight:500;letter-spacing:1px;text-transform:uppercase}
+.trav-btns{display:flex;gap:8px;flex-wrap:wrap}
+.trav-result{flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);overflow-x:auto;white-space:nowrap;max-width:100%}
+.trav-result.empty{color:var(--text-dim);font-style:italic}
+#editPanel{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 2rem;display:none;flex-wrap:wrap;gap:16px;align-items:flex-end}
+.edit-group{display:flex;flex-direction:column;gap:5px}
+.edit-group label{font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase}
+.edit-input{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:180px;transition:border-color .2s}
+.edit-input:focus{border-color:var(--un-blue)}
+.edit-input::placeholder{color:var(--text-dim)}
+.edit-actions{display:flex;gap:8px;align-items:center;padding-bottom:1px}
+.main-container{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:2rem}
+#treeContainer{display:none;flex-direction:column;align-items:center;padding:2rem 0}
+#treeContainer.visible{display:flex}
+.root-card{background:linear-gradient(135deg,rgba(74,144,217,.22),rgba(0,212,170,.12));border:1px solid var(--un-blue);border-radius:16px;padding:16px 32px;display:flex;align-items:center;gap:14px;box-shadow:0 0 48px rgba(74,144,217,.18),0 8px 32px rgba(0,0,0,.45);animation:fadeDown .5s ease}
+.root-icon{font-size:34px}.root-label{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:5px;color:var(--un-pale);text-shadow:0 0 20px rgba(74,144,217,.5)}
+.root-sub{font-size:11px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;font-weight:300;margin-top:2px}
+.v-line{width:2px;background:linear-gradient(to bottom,var(--un-blue),var(--connector));flex-shrink:0}
+.v-line.s{height:28px}.v-line.m{height:44px}
+.continents-row{display:flex;flex-wrap:wrap;gap:20px;justify-content:center}
+.continent-branch{display:flex;flex-direction:column;align-items:center;animation:fadeUp .55s ease both}
+.continent-node{background:var(--surface2);border:1px solid var(--border-bright);border-radius:11px;padding:9px 18px;cursor:pointer;transition:all .22s;display:flex;align-items:center;gap:8px;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.32);position:relative;overflow:hidden}
+.continent-node::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(74,144,217,.06));opacity:0;transition:opacity .22s}
+.continent-node:hover::after{opacity:1}
+.continent-node:hover{border-color:var(--un-blue);transform:translateY(-2px);box-shadow:0 8px 24px rgba(74,144,217,.2)}
+.continent-node.active{border-color:var(--un-blue);background:rgba(74,144,217,.12)}
+.c-emoji{font-size:18px}.c-name{font-weight:600;font-size:13px;color:var(--un-light);letter-spacing:.4px}
+.c-count{font-size:10px;color:var(--text-dim);font-family:'DM Mono',monospace;background:var(--surface3);padding:2px 6px;border-radius:9px}
+.chevron{font-size:9px;color:var(--text-dim);transition:transform .22s}
+.continent-node.active .chevron{transform:rotate(180deg)}
+.regions-wrap{overflow:hidden;max-height:0;transition:max-height .42s ease;display:flex;flex-direction:column;align-items:center;width:100%}
+.regions-wrap.open{max-height:9999px}
+.regions-row{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
+.region-branch{display:flex;flex-direction:column;align-items:center;animation:fadeUp .38s ease both}
+.region-node{background:var(--surface3);border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:7px 14px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px}
+.region-node:hover{border-color:rgba(74,144,217,.4);background:rgba(74,144,217,.07);transform:translateY(-1px)}
+.region-node.active{border-color:var(--accent);background:rgba(0,212,170,.08)}
+.r-name{color:var(--text);font-weight:500}.r-count{font-size:10px;color:var(--text-dim);font-family:'DM Mono',monospace}
+.countries-wrap{overflow:hidden;max-height:0;transition:max-height .38s ease;display:flex;flex-direction:column;align-items:center;width:100%}
+.countries-wrap.open{max-height:5000px}
+.countries-grid{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:760px;padding-bottom:4px}
+.country-node{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer;transition:all .18s;font-size:12px;animation:fadeUp .28s ease both;position:relative}
+.country-node:hover{border-color:rgba(240,180,41,.5);background:rgba(240,180,41,.06);transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:20}
+.country-node.highlighted{border-color:var(--accent2)!important;background:rgba(240,180,41,.13)!important;box-shadow:0 0 18px rgba(240,180,41,.28)!important}
+.country-node.path-highlight{border-color:var(--accent)!important;background:rgba(0,212,170,.13)!important}
+.country-node.traversal-highlight{border-color:var(--un-blue)!important;background:rgba(74,144,217,.18)!important;animation:travPulse .4s ease both}
+.country-node.selected-delete{border-color:var(--danger)!important;background:rgba(240,96,96,.12)!important;box-shadow:0 0 16px rgba(240,96,96,.25)!important}
+.country-node.inserted{border-color:var(--accent)!important;background:rgba(0,212,170,.15)!important;box-shadow:0 0 18px rgba(0,212,170,.35)!important;animation:insertPop .5s ease}
+.c-flag{width:24px;height:16px;object-fit:cover;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,.45);flex-shrink:0}
+.c-name-txt{color:var(--text);font-weight:400;white-space:nowrap}
+.c-delete-btn{display:none;width:16px;height:16px;border-radius:50%;background:var(--danger);border:none;color:#fff;font-size:9px;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s}
+.country-node:hover .c-delete-btn{display:flex}
+.c-delete-btn:hover{transform:scale(1.2)}
+.metrics-badge{position:absolute;top:-6px;right:-6px;background:var(--accent2);color:#000;font-size:9px;font-weight:700;padding:2px 5px;border-radius:8px;font-family:'DM Mono',monospace;opacity:0;transition:opacity .15s;pointer-events:none;white-space:nowrap}
+.country-node:hover .metrics-badge{opacity:1}
+.c-tooltip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border-bright);border-radius:12px;padding:11px;width:210px;z-index:200;pointer-events:none;opacity:0;transition:opacity .15s;font-size:11px;box-shadow:0 8px 32px rgba(0,0,0,.65),0 0 20px rgba(74,144,217,.1)}
+.country-node:hover .c-tooltip{opacity:1}
+.tt-flag{width:100%;height:72px;object-fit:cover;border-radius:7px;margin-bottom:8px;display:block}
+.tt-name{font-weight:600;font-size:13px;margin-bottom:6px}
+.tt-row{display:flex;justify-content:space-between;margin-bottom:3px;color:var(--text-muted)}
+.tt-val{color:var(--text);font-family:'DM Mono',monospace;font-size:10px}
+.tt-divider{border:none;border-top:1px solid var(--border);margin:6px 0}
+.tt-metric-row{display:flex;justify-content:space-between}
+.tt-metric-lbl{font-size:10px;color:var(--accent)}
+.tt-metric-val{font-size:10px;color:var(--accent2);font-family:'DM Mono',monospace;font-weight:600}
+#pathDisplay{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border-bright);border-radius:12px;padding:10px 18px;font-size:12px;color:var(--text);z-index:300;box-shadow:0 8px 32px rgba(0,0,0,.5);white-space:nowrap;max-width:90vw;overflow:hidden;animation:slideUp .3s ease}
+#pathDisplay .path-label{color:var(--text-muted);margin-right:8px}
+#pathDisplay .path-value{color:var(--accent);font-family:'DM Mono',monospace}
+.error-box{background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.3);border-radius:12px;padding:22px 30px;text-align:center;color:#ff9090;margin:4rem auto;max-width:420px}
+@keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 0 40px rgba(74,144,217,.5)}50%{transform:scale(1.08);box-shadow:0 0 64px rgba(74,144,217,.8)}}
+@keyframes loadProg{0%{width:0}50%{width:60%}100%{width:90%}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes travPulse{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes insertPop{0%{transform:scale(.7);opacity:0}70%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="loading-globe">🌍</div>
+  <div class="loading-title">Carregando ONU</div>
+  <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+  <div class="loading-msg">Consultando REST Countries API…</div>
+</div>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-area">
+      <div class="un-emblem">🌐</div>
+      <div class="logo-text">
+        <div class="logo-title">ONU</div>
+        <div class="logo-sub">Árvore Interativa de Nações</div>
+      </div>
+    </div>
+    <div class="header-controls">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="Buscar país…"/>
+      </div>
+      <select id="searchMethod" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text-muted);font-size:12px;outline:none;cursor:pointer;">
+        <option value="dfs">DFS</option>
+        <option value="bfs">BFS</option>
+      </select>
+      <button class="btn" id="btnExpand">▼ Expandir</button>
+      <button class="btn" id="btnCollapse">▲ Recolher</button>
+      <button class="btn success" id="btnEdit">✎ Editar Árvore</button>
+    </div>
+  </div>
+</header>
+
+<div id="statsBar" style="display:flex">
+  <div class="stat-item"><div class="stat-dot"></div>Continentes: <span class="stat-value" id="sCont">—</span></div>
+  <div class="stat-item"><div class="stat-dot" style="background:var(--un-blue)"></div>Regiões: <span class="stat-value" id="sReg">—</span></div>
+  <div class="stat-item"><div class="stat-dot" style="background:var(--accent2)"></div>Países: <span class="stat-value" id="sCoun">—</span></div>
+</div>
+
+<div id="traversalPanel" style="display:flex">
+  <span class="trav-label">Caminhamento:</span>
+  <div class="trav-btns">
+    <button class="btn" id="btnPreOrder">Pré-ordem</button>
+    <button class="btn" id="btnInOrder">Em-ordem</button>
+    <button class="btn" id="btnPostOrder">Pós-ordem</button>
+  </div>
+  <div class="trav-result empty" id="travResult">Execute um caminhamento para ver a ordem de visitação…</div>
+</div>
+
+<div id="editPanel">
+  <div class="edit-group">
+    <label>Nome do País</label>
+    <input class="edit-input" id="insertName" placeholder="Ex: Wakanda"/>
+  </div>
+  <div class="edit-group">
+    <label>Continente</label>
+    <input class="edit-input" id="insertContinent" placeholder="Ex: Africa"/>
+  </div>
+  <div class="edit-group">
+    <label>Região</label>
+    <input class="edit-input" id="insertRegion" placeholder="Ex: Eastern Africa"/>
+  </div>
+  <div class="edit-actions">
+    <button class="btn success" id="btnInsert">＋ Inserir</button>
+  </div>
+  <div style="width:1px;background:var(--border);align-self:stretch;margin:0 8px"></div>
+  <div class="edit-actions" style="gap:10px">
+    <span id="deleteInfo" style="font-size:12px;color:var(--text-muted)">Clique em <b style="color:var(--danger)">✕</b> em qualquer país para remover.</span>
+    <button class="btn danger" id="btnConfirmDelete">✕ Confirmar Exclusão</button>
+    <button class="btn" id="btnCancelDelete">Cancelar</button>
+  </div>
+</div>
+
+<div class="main-container">
+  <div id="treeContainer"></div>
+  <div id="errBox" style="display:none"></div>
+</div>
+
+<div id="pathDisplay">
+  <span class="path-label">Caminho:</span>
+  <span class="path-value"></span>
+</div>
+
+<script>
+window.API_ENDPOINT = 'https://restcountries.com/v3.1/all?fields=name,region,subregion,flags,population,area,capital,cca3';
+</script>
+<script src="js/main.js"></script>
+</body>
+</html>
